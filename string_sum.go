@@ -2,6 +2,9 @@ package string_sum
 
 import (
 	"errors"
+	"fmt"
+	"strconv"
+	"strings"
 )
 
 //use these errors as appropriate, wrapping them with fmt.Errorf function
@@ -23,5 +26,80 @@ var (
 // Use the errors defined above as described, again wrapping into fmt.Errorf
 
 func StringSum(input string) (output string, err error) {
-	return "", nil
+	input = strings.ReplaceAll(input, " ", "")
+
+	if input == "" {
+		return "", fmt.Errorf("%w", errorEmptyInput)
+	}
+
+	input = reduseSigns(input)
+
+	operands := []string{}
+	index := strings.LastIndexAny(input, "+-")
+	for index != -1 {
+		left, right := stringSplitByRuneIndex(input, index)
+		operands = append(operands, right)
+		input = left
+		index = strings.LastIndexAny(input, "+-")
+	}
+	if input != "" {
+		operands = append(operands, input)
+	}
+	if len(operands) != 2 {
+		return "", fmt.Errorf("%w", errorNotTwoOperands)
+	}
+
+	sum := 0
+	for _, op := range operands {
+		v, err := strconv.Atoi(op)
+		if err != nil {
+			return "", fmt.Errorf("invalid input expression: %w", err)
+		}
+		sum += v
+	}
+
+	return strconv.Itoa(sum), nil
+}
+
+// reduse multiply signs like +-+-+3 to +3
+func reduseSigns(input string) (output string) {
+	sign := 1
+	atSign := false
+	for _, ch := range input {
+		switch ch {
+		case '+':
+			atSign = true
+		case '-':
+			sign *= -1
+			atSign = true
+		default:
+			if atSign {
+				if sign > 0 {
+					output += "+"
+				}
+				if sign < 0 {
+					output += "-"
+				}
+				atSign = false
+				sign = 1
+			}
+			if !atSign {
+				output += string(ch)
+			}
+		}
+	}
+
+	//Trailing sign meaningless but still for error
+	if atSign {
+		output += "+"
+	}
+
+	return
+}
+
+func stringSplitByRuneIndex(input string, index int) (left string, righ string) {
+	runes := []rune(input)
+	left = string(runes[:index])
+	righ = string(runes[index:])
+	return
 }
